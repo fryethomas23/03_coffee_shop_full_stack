@@ -35,7 +35,7 @@ def get_drinks():
     return jsonify({
         "success": True,
         "drinks": drinks
-    })
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -46,14 +46,18 @@ def get_drinks():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks-detail', methods=['GET'])
-@requires_auth('get:drinks')
-def get_drink_details():
+@requires_auth('get:drinks-detail')
+def get_drink_details(token):
+    if type(token) == AuthError:
+        print(token)
+        abort(token.status_code)
+
     drinks = [drink.long() for drink in Drink.query.all()]
 
     return jsonify({
         "success": True,
         "drinks": drinks
-    })
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -66,14 +70,17 @@ def get_drink_details():
 '''
 @app.route('/drinks', methods=['POST'])
 @requires_auth('post:drinks')
-def post_drink():
+def post_drink(token):
+    if type(token) == AuthError:
+        print(token)
+        abort(token.status_code)
+
     body = request.get_json()
     id = body.get('id', None)
     title = body.get('title', None)
     recipe = str(body.get('recipe', None)).replace("\'","\"")
     
     try:
-        print(recipe)
         new_drink = Drink(title=title, recipe=str(recipe))
         new_drink.insert()
     except:
@@ -83,7 +90,7 @@ def post_drink():
     return jsonify({
         "success": True,
         "drinks": new_drink.long()
-    })
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -98,26 +105,31 @@ def post_drink():
 '''
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
-def update_drink(id):
+def update_drink(token, id):
+    if type(token) == AuthError:
+        print(token)
+        abort(token.status_code)
+
     selected_drink = Drink.query.filter_by(id=id).one_or_none()
     if selected_drink == None:
         abort(404)
 
     body = request.get_json()
     title = body.get('title', None)
-    recipe = str(body.get('recipe', None)).replace("\'","\"")
+    recipe = body.get('recipe', None) 
 
     try:
-        selected_drink.title = title
-        selected_drink.recipe = recipe
+        if title:
+            selected_drink.title = title
+        if recipe:
+            selected_drink.recipe = str(recipe).replace("\'","\"")
         selected_drink.update()
     except:
         abort(422)
-
     return jsonify({
         "success": True,
-        "drinks": selected_drink.long()
-    })
+        "drinks": [selected_drink.long()]
+    }), 200
 
 '''
 @TODO implement endpoint
@@ -131,7 +143,10 @@ def update_drink(id):
 '''
 @app.route('/drinks/<int:id>', methods=['DELETE'])
 @requires_auth('delete:drinks')
-def delete_drink(id):
+def delete_drink(token, id):
+    if type(token) == AuthError:
+        abort(token.status_code)
+
     selected_drink = Drink.query.filter_by(id=id).one_or_none()
     if selected_drink == None:
         abort(404)
@@ -141,7 +156,7 @@ def delete_drink(id):
     return jsonify({
         "success": True,
         "delete": id
-    })
+    }), 200
 
 ## Error Handling
 '''
@@ -174,13 +189,6 @@ def method_not_allowed(error):
         "message": "Method Not Allowed"
         }), 405
 
-@app.errorhandler(422)
-def unprocessable(error):
-    return jsonify({
-      "success": False,
-      "error":422,
-      "message": "Unprocessable"
-    }), 422
 '''
 @TODO implement error handler for 404
     error handler should conform to general task above 
@@ -212,3 +220,11 @@ def forbidden(error):
         "error": 403,
         "message": "Forbidden"
         }), 403
+
+@app.errorhandler(400)
+def forbidden(error):
+    return jsonify({
+        "success": False, 
+        "error": 400,
+        "message": "Bad Request"
+        }), 400

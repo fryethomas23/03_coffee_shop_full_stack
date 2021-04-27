@@ -5,9 +5,9 @@ from jose import jwt
 from urllib.request import urlopen
 
 
-AUTH0_DOMAIN = 'udacity-fsnd.auth0.com'
+AUTH0_DOMAIN = 'fsnd-thomas.us.auth0.com'
 ALGORITHMS = ['RS256']
-API_AUDIENCE = 'dev'
+API_AUDIENCE = 'drinks'
 
 ## AuthError Exception
 '''
@@ -32,6 +32,7 @@ class AuthError(Exception):
 '''
 def get_token_auth_header():
     auth = request.headers.get('Authorization', None)
+    #print(auth)
     if not auth:
         raise AuthError({
             'code': 'authorization_header_missing',
@@ -105,9 +106,9 @@ def verify_decode_jwt(token):
             'code': 'invalid_header',
             'description': 'Authorization malformed.'
         }, 401)
-    print(unverified_header['kid'])
+    print(" ",unverified_header['kid'])
     for key in jwks['keys']:
-        print(key['kid'])
+        print(" ",key['kid'])
         if key['kid'] == unverified_header['kid']:
             rsa_key = {
                 'kty': key['kty'],
@@ -116,10 +117,9 @@ def verify_decode_jwt(token):
                 'n': key['n'],
                 'e': key['e']
             }
-    print(rsa_key)
+    print(" ",rsa_key)
     if rsa_key:
         try:
-            print("hello")
             payload = jwt.decode(
                 token,
                 rsa_key,
@@ -127,7 +127,6 @@ def verify_decode_jwt(token):
                 audience=API_AUDIENCE,
                 issuer='https://' + AUTH0_DOMAIN + '/'
             )
-            print("hello2")
             return payload
 
         except jwt.ExpiredSignatureError:
@@ -166,16 +165,18 @@ def requires_auth(permission=''):
     def requires_auth_decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            token = get_token_auth_header()
-            payload = verify_decode_jwt(token)
-            check_permissions(permission, payload)
-            return f(payload, *args, **kwargs)
-            # try:
-            #     token = get_token_auth_header()
-            #     payload = verify_decode_jwt(token)
-            #     check_permissions(permission, payload)
-            #     return f(payload, *args, **kwargs)
-            # except AuthError:
+            # token = get_token_auth_header()
+            # payload = verify_decode_jwt(token)
+            # check_permissions(permission, payload)
+            # return f(payload, *args, **kwargs)
+            try:
+                token = get_token_auth_header()
+                print(token)
+                payload = verify_decode_jwt(token)
+                check_permissions(permission, payload)
+                return f(payload, *args, **kwargs)
+            except Exception as e:
+                return f(e, *args, **kwargs)
 
         wrapper.__name__ = f.__name__
         return wrapper
