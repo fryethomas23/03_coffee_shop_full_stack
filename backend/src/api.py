@@ -83,8 +83,8 @@ def post_drink(token):
     try:
         new_drink = Drink(title=title, recipe=str(recipe))
         new_drink.insert()
-    except:
-        traceback.print_exc()
+    except Exception as e:
+        print(e)
         abort(422)
     
     return jsonify({
@@ -124,8 +124,10 @@ def update_drink(token, id):
         if recipe:
             selected_drink.recipe = str(recipe).replace("\'","\"")
         selected_drink.update()
-    except:
+    except Exception as e:
+        print(e)
         abort(422)
+
     return jsonify({
         "success": True,
         "drinks": [selected_drink.long()]
@@ -228,3 +230,14 @@ def forbidden(error):
         "error": 400,
         "message": "Bad Request"
         }), 400
+
+@app.errorhandler(AuthError)
+def Authentication_error(error):
+    """
+    Authentication error handler 
+    """
+    return jsonify({
+        "success": False, 
+        "error": error.error['code'],
+        "message": error.error['description']
+        }), error.status_code
